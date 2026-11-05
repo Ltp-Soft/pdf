@@ -18,10 +18,10 @@ export function createPdfToImgTool(container, { updateProgress, resetProgress })
         <!-- Header -->
         <div class="flex items-center justify-between pb-4 border-b border-slate-200">
           <div>
-            <h2 class="text-2xl font-bold text-slate-800 flex items-center gap-2">
+            <h1 class="text-2xl font-bold text-slate-800 flex items-center gap-2">
               <span class="p-2 bg-indigo-50 text-indigo-600 rounded-xl">${icons.pdfToImg}</span>
               Chuyển PDF sang Ảnh (PDF to Images)
-            </h2>
+            </h1>
             <p class="text-sm text-slate-500 mt-1">Xuất toàn bộ các trang PDF thành hình ảnh JPG/PNG sắc nét và nén thành tệp ZIP để tải về.</p>
           </div>
         </div>

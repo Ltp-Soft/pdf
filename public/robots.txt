@@ -1,0 +1,5 @@
+# pdf.ltp-soft.com - Cho phép toàn bộ bot tìm kiếm lập chỉ mục
+User-agent: *
+Allow: /
+
+Sitemap: https://pdf.ltp-soft.com/sitemap.xml

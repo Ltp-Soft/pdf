@@ -22,10 +22,10 @@ export function createCompressTool(container, { updateProgress, resetProgress })
         <!-- Header -->
         <div class="flex items-center justify-between pb-4 border-b border-slate-200">
           <div>
-            <h2 class="text-2xl font-bold text-slate-800 flex items-center gap-2">
+            <h1 class="text-2xl font-bold text-slate-800 flex items-center gap-2">
               <span class="p-2 bg-indigo-50 text-indigo-600 rounded-xl">${icons.compress}</span>
               Nén file PDF (Compress PDF)
-            </h2>
+            </h1>
             <p class="text-sm text-slate-500 mt-1">Giảm kích thước tệp PDF bằng cách tối ưu hóa và nén hình ảnh trang trực tiếp trên trình duyệt.</p>
           </div>
         </div>

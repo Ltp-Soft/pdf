@@ -1,4 +1,6 @@
-# PDF Free - Ứng dụng Xử lý PDF Client-side Trực tuyến
+# LTP PDF – Ghép file PDF miễn phí, không cần đăng ký
+
+🌐 **https://pdf.ltp-soft.com** – sản phẩm miễn phí của [LTP Soft](https://ltp-soft.com) (Phần mềm chấm công QR & GPS).
 
 Ứng dụng web xử lý PDF hiện đại, tối giản, chạy 100% trên trình duyệt người dùng (Client-side) sử dụng HTML, Tailwind CSS, JavaScript, `pdf-lib`, `pdfjs-dist` và `JSZip`.
 
@@ -96,3 +98,24 @@ Thư mục `dist/` sẽ được tạo ra với toàn bộ mã nguồn tĩnh đ�
 1. Chạy `npm run build` trên máy của bạn.
 2. Trong Cloudflare Dashboard → **Workers & Pages** → **Create application** → **Pages** → **Upload assets**.
 3. Kéo toàn bộ thư mục `dist` vào và hoàn tất.
+
+### Gắn tên miền `pdf.ltp-soft.com`
+Pages project → **Custom domains** → **Set up a custom domain** → nhập `pdf.ltp-soft.com` (Cloudflare tự tạo bản ghi CNAME vì `ltp-soft.com` đã nằm trên Cloudflare).
+
+---
+
+## 🔎 SEO & Marketing
+
+| Thành phần | Vị trí |
+|---|---|
+| Cấu hình URL, title, description, FAQ từng công cụ | `src/seo/routes.js` |
+| Sinh thẻ meta, Open Graph, JSON-LD (Organization, WebSite, WebApplication, FAQPage, Breadcrumb) | `src/seo/render.js` |
+| Sinh `dist/<slug>/index.html` + `sitemap.xml` lúc build | `vite.config.js` (plugin `ltp-seo-pages`) |
+| robots.txt, manifest, headers Cloudflare, trang 404 | `public/` |
+| Khối quảng cáo ltp-soft.com (có UTM) | `src/ads.js` |
+| Logo / favicon / OG image | `public/brand/`, `public/*.png`, sinh lại bằng `python scripts/gen-brand-assets.py` |
+
+URL được lập chỉ mục:
+`/`, `/ghep-file-pdf/`, `/chen-trang-pdf/`, `/tach-file-pdf/`, `/nen-file-pdf/`, `/pdf-sang-anh/`, `/anh-sang-pdf/`, `/xoay-file-pdf/`
+
+**Google Analytics 4 (tuỳ chọn):** đặt biến môi trường `VITE_GA4_ID=G-XXXXXXX` (file `.env` hoặc Cloudflare Pages → Settings → Environment variables) rồi build lại. Click quảng cáo được ghi nhận thành event `ad_click`.

@@ -19,10 +19,10 @@ export function createRotateTool(container, { updateProgress, resetProgress }) {
         <!-- Header -->
         <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-200 gap-4">
           <div>
-            <h2 class="text-2xl font-bold text-slate-800 flex items-center gap-2">
+            <h1 class="text-2xl font-bold text-slate-800 flex items-center gap-2">
               <span class="p-2 bg-indigo-50 text-indigo-600 rounded-xl">${icons.rotate}</span>
               Xoay trang PDF (Rotate PDF)
-            </h2>
+            </h1>
             <p class="text-sm text-slate-500 mt-1">Xem trước trực quan từng trang tài liệu và xoay đúng góc mong muốn trước khi lưu.</p>
           </div>
         </div>

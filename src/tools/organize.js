@@ -32,10 +32,10 @@ export function createOrganizeTool(container, { updateProgress, resetProgress })
         <!-- Header -->
         <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-200 gap-4">
           <div>
-            <h2 class="text-2xl font-bold text-slate-800 flex items-center gap-2">
+            <h1 class="text-2xl font-bold text-slate-800 flex items-center gap-2">
               <span class="p-2 bg-indigo-50 text-indigo-600 rounded-xl">${icons.organize}</span>
               Ghép & Chèn trang trực quan hai cửa sổ
-            </h2>
+            </h1>
             <p class="text-sm text-slate-500 mt-1">Mở 2 tệp PDF ở hai bên, kéo bốc từng trang từ tệp này chèn vào giữa danh sách trang của tệp kia.</p>
           </div>
 
