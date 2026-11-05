@@ -421,9 +421,9 @@ export function createOrganizeTool(container, { updateProgress, resetProgress })
       docs[panelId].file = file;
       docs[panelId].arrayBuffer = ab;
 
-      // Load both pdf-lib and pdfjs
-      docs[panelId].pdfLibDoc = await PDFDocument.load(ab, { ignoreEncryption: true });
-      docs[panelId].pdfjsDoc = await loadPdfDocument(ab);
+      // Load both pdf-lib and pdfjs using safe cloned ArrayBuffers
+      docs[panelId].pdfLibDoc = await PDFDocument.load(ab.slice(0), { ignoreEncryption: true });
+      docs[panelId].pdfjsDoc = await loadPdfDocument(ab.slice(0));
 
       const total = docs[panelId].pdfjsDoc.numPages;
       docs[panelId].pages = [];
@@ -481,7 +481,7 @@ export function createOrganizeTool(container, { updateProgress, resetProgress })
       // Ensure pdfLib documents are loaded
       for (const key of ['A', 'B']) {
         if (!docs[key].pdfLibDoc && docs[key].arrayBuffer) {
-          docs[key].pdfLibDoc = await PDFDocument.load(docs[key].arrayBuffer, { ignoreEncryption: true });
+          docs[key].pdfLibDoc = await PDFDocument.load(docs[key].arrayBuffer.slice(0), { ignoreEncryption: true });
         }
       }
 

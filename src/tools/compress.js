@@ -8,6 +8,7 @@ export function createCompressTool(container, { updateProgress, resetProgress })
   let fileBuffer = null;
   let pdfjsDoc = null;
   let totalPages = 0;
+  let pages = []; // [{ pageNum: number, thumbUrl: string }]
   let isProcessing = false;
 
   // Presets: [scale, quality]
@@ -17,7 +18,7 @@ export function createCompressTool(container, { updateProgress, resetProgress })
 
   function render() {
     container.innerHTML = `
-      <div class="max-w-3xl mx-auto space-y-6">
+      <div class="max-w-5xl mx-auto space-y-6">
         <!-- Header -->
         <div class="flex items-center justify-between pb-4 border-b border-slate-200">
           <div>
@@ -44,9 +45,9 @@ export function createCompressTool(container, { updateProgress, resetProgress })
         </div>
 
         <!-- Options Section -->
-        <div id="options-container" class="${currentFile ? '' : 'hidden'} space-y-5 bg-white p-6 border border-slate-200 rounded-2xl shadow-xs">
+        <div id="options-container" class="${currentFile ? '' : 'hidden'} space-y-5">
           <!-- File info card -->
-          <div class="flex items-center justify-between p-3.5 bg-slate-50 rounded-xl border border-slate-200">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-white rounded-2xl border border-slate-200 shadow-xs gap-3">
             <div class="flex items-center gap-3 min-w-0">
               <div class="shrink-0">${icons.filePdf}</div>
               <div class="min-w-0">
@@ -54,13 +55,13 @@ export function createCompressTool(container, { updateProgress, resetProgress })
                 <p class="text-xs text-slate-500">Dung lượng gốc: <span class="font-bold text-slate-700">${currentFile ? formatBytes(currentFile.size) : ''}</span> • ${totalPages} trang</p>
               </div>
             </div>
-            <button id="change-file-btn" class="text-xs text-slate-500 hover:text-rose-600 px-3 py-1.5 rounded-lg hover:bg-white transition-colors">
+            <button id="change-file-btn" class="self-start sm:self-center text-xs text-slate-500 hover:text-rose-600 px-3 py-1.5 rounded-lg hover:bg-slate-50 transition-colors">
               Đổi tệp khác
             </button>
           </div>
 
-          <!-- Compression Levels -->
-          <div class="space-y-3">
+          <!-- Compression Levels Box -->
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
             <label class="block text-sm font-semibold text-slate-700">Chọn mức độ nén:</label>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <label class="relative flex flex-col p-3.5 border rounded-xl cursor-pointer transition-all ${compressionLevel === 'low' ? 'border-indigo-600 bg-indigo-50/40 text-indigo-900 ring-2 ring-indigo-500/20' : 'border-slate-200 hover:bg-slate-50'}">
@@ -88,37 +89,68 @@ export function createCompressTool(container, { updateProgress, resetProgress })
                 <p class="text-xs text-slate-500 mt-1 pl-5">Dung lượng nhỏ nhất có thể, chất lượng vừa phải</p>
               </label>
             </div>
-          </div>
 
-          <!-- Custom Sliders (if custom mode is selected) -->
-          <div id="custom-sliders-box" class="${compressionLevel === 'custom' ? '' : 'hidden'} space-y-4 pt-2 border-t border-slate-100">
-            <div>
-              <div class="flex justify-between text-xs font-medium text-slate-700 mb-1">
-                <span>Chất lượng ảnh (JPEG Quality)</span>
-                <span id="quality-val">${Math.round(customQuality * 100)}%</span>
+            <!-- Custom Sliders -->
+            <div id="custom-sliders-box" class="${compressionLevel === 'custom' ? '' : 'hidden'} space-y-4 pt-3 border-t border-slate-100">
+              <div>
+                <div class="flex justify-between text-xs font-medium text-slate-700 mb-1">
+                  <span>Chất lượng ảnh (JPEG Quality)</span>
+                  <span id="quality-val">${Math.round(customQuality * 100)}%</span>
+                </div>
+                <input type="range" id="quality-range" min="0.2" max="0.95" step="0.05" value="${customQuality}" class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600" />
               </div>
-              <input type="range" id="quality-range" min="0.2" max="0.95" step="0.05" value="${customQuality}" class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600" />
+
+              <div>
+                <div class="flex justify-between text-xs font-medium text-slate-700 mb-1">
+                  <span>Độ phân giải (Scale)</span>
+                  <span id="scale-val">${customScale}x</span>
+                </div>
+                <input type="range" id="scale-range" min="0.5" max="1.5" step="0.1" value="${customScale}" class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600" />
+              </div>
             </div>
 
-            <div>
-              <div class="flex justify-between text-xs font-medium text-slate-700 mb-1">
-                <span>Độ phân giải (Scale)</span>
-                <span id="scale-val">${customScale}x</span>
-              </div>
-              <input type="range" id="scale-range" min="0.5" max="1.5" step="0.1" value="${customScale}" class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600" />
+            <div class="text-xs text-slate-500 flex items-center justify-between pt-1">
+              <span class="inline-flex items-center gap-1">${icons.shield} Xử lý cục bộ 100% trên trình duyệt</span>
+              <button id="toggle-custom-btn" class="text-indigo-600 hover:underline">
+                ${compressionLevel === 'custom' ? 'Ẩn tùy chỉnh thủ công' : 'Tùy chỉnh thủ công...'}
+              </button>
             </div>
           </div>
 
-          <div class="text-xs text-slate-500 flex items-center justify-between">
-            <span class="inline-flex items-center gap-1">${icons.shield} Không tải lên máy chủ - an toàn bảo mật tuyệt đối</span>
-            <button id="toggle-custom-btn" class="text-indigo-600 hover:underline">
-              ${compressionLevel === 'custom' ? 'Ẩn tùy chỉnh thủ công' : 'Tùy chỉnh thủ công...'}
-            </button>
+          <!-- Visual Pages Preview Grid -->
+          <div class="bg-slate-50 p-4 sm:p-6 rounded-2xl border border-slate-200 space-y-3">
+            <div class="flex items-center justify-between text-xs text-slate-500 px-1">
+              <span class="font-semibold text-slate-700">Cửa sổ xem trước trang tài liệu (${totalPages} trang):</span>
+              <span>Nội dung sẽ được tối ưu theo độ phân giải nén</span>
+            </div>
+
+            <div id="pages-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3.5">
+              ${pages.map((p) => `
+                <div class="compress-page-tile bg-white border border-slate-200 rounded-2xl p-2 shadow-xs flex flex-col justify-between">
+                  <div class="flex items-center justify-between text-[11px] mb-1.5 px-0.5">
+                    <span class="font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md">
+                      Trang ${p.pageNum}
+                    </span>
+                  </div>
+
+                  <div class="aspect-[1/1.4] bg-slate-100 rounded-xl overflow-hidden border border-slate-100 flex items-center justify-center relative p-1">
+                    ${p.thumbUrl ? `
+                      <img src="${p.thumbUrl}" alt="Trang ${p.pageNum}" class="w-full h-full object-contain pointer-events-none" />
+                    ` : `
+                      <div class="flex flex-col items-center justify-center text-slate-300">
+                        <span class="animate-spin text-indigo-500 text-sm">●</span>
+                      </div>
+                    `}
+                  </div>
+                </div>
+              `).join('')}
+            </div>
           </div>
 
           <!-- Action Button -->
-          <div class="pt-2">
-            <button id="compress-btn" ${isProcessing ? 'disabled' : ''} class="w-full inline-flex items-center justify-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-xl shadow-sm transition-all text-sm">
+          <div class="p-5 bg-white border border-slate-200 rounded-2xl shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
+            <span class="text-xs text-slate-500">Giảm dung lượng tự động và giữ nguyên cấu trúc trang</span>
+            <button id="compress-btn" ${isProcessing ? 'disabled' : ''} class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-xl shadow-sm transition-all text-sm">
               ${icons.compress} Bắt đầu nén PDF
             </button>
           </div>
@@ -194,6 +226,7 @@ export function createCompressTool(container, { updateProgress, resetProgress })
       changeFileBtn.addEventListener('click', () => {
         currentFile = null;
         pdfjsDoc = null;
+        pages = [];
         totalPages = 0;
         render();
       });
@@ -246,6 +279,7 @@ export function createCompressTool(container, { updateProgress, resetProgress })
       resetBtn.addEventListener('click', () => {
         currentFile = null;
         pdfjsDoc = null;
+        pages = [];
         render();
       });
     }
@@ -261,11 +295,35 @@ export function createCompressTool(container, { updateProgress, resetProgress })
       updateProgress(20, 'Đang phân tích tệp PDF...');
       const ab = await readFileAsArrayBuffer(file);
       fileBuffer = ab;
-      pdfjsDoc = await loadPdfDocument(ab);
-      totalPages = pdfjsDoc.numPages;
       currentFile = file;
+
+      // Safe clone
+      pdfjsDoc = await loadPdfDocument(ab.slice(0));
+      totalPages = pdfjsDoc.numPages;
+
+      pages = [];
+      for (let i = 0; i < totalPages; i++) {
+        pages.push({ pageNum: i + 1, thumbUrl: null });
+      }
+
       resetProgress();
       render();
+
+      for (let i = 0; i < totalPages; i++) {
+        try {
+          const rendered = await renderPageToCanvas(pdfjsDoc, i + 1, 0.35);
+          const thumbUrl = rendered.canvas.toDataURL('image/jpeg', 0.7);
+          if (pages[i]) {
+            pages[i].thumbUrl = thumbUrl;
+            const imgEl = container.querySelector(`.compress-page-tile:nth-child(${i + 1}) img`);
+            if (imgEl) imgEl.src = thumbUrl;
+          }
+        } catch (e) {
+          console.warn(e);
+        }
+      }
+      render();
+
     } catch (err) {
       console.error(err);
       alert('Không thể mở tệp PDF: ' + err.message);

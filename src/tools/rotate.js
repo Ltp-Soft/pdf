@@ -371,8 +371,8 @@ export function createRotateTool(container, { updateProgress, resetProgress }) {
       arrayBuffer = ab;
       currentFile = file;
 
-      pdfjsDoc = await loadPdfDocument(ab);
-      pdfLibDoc = await PDFDocument.load(ab, { ignoreEncryption: true });
+      pdfLibDoc = await PDFDocument.load(ab.slice(0), { ignoreEncryption: true });
+      pdfjsDoc = await loadPdfDocument(ab.slice(0));
       totalPages = pdfjsDoc.numPages;
 
       pages = [];

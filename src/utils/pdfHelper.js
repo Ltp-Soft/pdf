@@ -8,8 +8,10 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
  * Load PDF Document via PDF.js
  */
 export async function loadPdfDocument(arrayBuffer) {
+  // Always use a slice/copy so the caller's ArrayBuffer is never detached by PDF.js web worker transfer
+  const copy = arrayBuffer.slice ? arrayBuffer.slice(0) : new Uint8Array(arrayBuffer).slice().buffer;
   const loadingTask = pdfjsLib.getDocument({
-    data: new Uint8Array(arrayBuffer),
+    data: new Uint8Array(copy),
     cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/cmaps/',
     cMapPacked: true,
   });

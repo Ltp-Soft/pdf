@@ -2,17 +2,23 @@ import { PDFDocument } from 'pdf-lib';
 import JSZip from 'jszip';
 import { icons } from '../utils/icons.js';
 import { formatBytes, downloadBlob, readFileAsArrayBuffer, parsePageRanges, getOutputFilename } from '../utils/helpers.js';
+import { loadPdfDocument, renderPageToCanvas } from '../utils/pdfHelper.js';
 
 export function createSplitTool(container, { updateProgress, resetProgress }) {
   let currentFile = null;
-  let pdfDoc = null;
+  let arrayBuffer = null;
+  let pdfLibDoc = null;
+  let pdfjsDoc = null;
   let totalPages = 0;
+  let pages = []; // [{ pageNum: number, selected: boolean, thumbUrl: string }]
   let splitMode = 'range'; // 'range' | 'all'
   let isProcessing = false;
 
   function render() {
+    const selectedCount = pages.filter(p => p.selected).length;
+
     container.innerHTML = `
-      <div class="max-w-3xl mx-auto space-y-6">
+      <div class="max-w-5xl mx-auto space-y-6">
         <!-- Header -->
         <div class="flex items-center justify-between pb-4 border-b border-slate-200">
           <div>
@@ -20,7 +26,7 @@ export function createSplitTool(container, { updateProgress, resetProgress }) {
               <span class="p-2 bg-indigo-50 text-indigo-600 rounded-xl">${icons.split}</span>
               Tách file PDF (Split PDF)
             </h2>
-            <p class="text-sm text-slate-500 mt-1">Trích xuất khoảng trang mong muốn hoặc tách từng trang thành file riêng biệt.</p>
+            <p class="text-sm text-slate-500 mt-1">Xem trước trực quan các trang và chọn trang cần tách hoặc chia nhỏ tệp.</p>
           </div>
         </div>
 
@@ -33,15 +39,15 @@ export function createSplitTool(container, { updateProgress, resetProgress }) {
             </div>
             <div>
               <p class="text-base font-semibold text-slate-700">Kéo & thả tệp PDF vào đây, hoặc <span class="text-indigo-600 underline">chọn tệp</span></p>
-              <p class="text-xs text-slate-400 mt-1">Xử lý an toàn 100% trên trình duyệt của bạn</p>
+              <p class="text-xs text-slate-400 mt-1">Tải và hiển thị cửa sổ xem trước toàn bộ các trang</p>
             </div>
           </div>
         </div>
 
-        <!-- Options Section -->
-        <div id="options-container" class="${currentFile ? '' : 'hidden'} space-y-5 bg-white p-6 border border-slate-200 rounded-2xl shadow-xs">
+        <!-- Options & Visual Workspace -->
+        <div id="options-container" class="${currentFile ? '' : 'hidden'} space-y-5">
           <!-- File info card -->
-          <div class="flex items-center justify-between p-3.5 bg-slate-50 rounded-xl border border-slate-200">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-white rounded-2xl border border-slate-200 shadow-xs gap-3">
             <div class="flex items-center gap-3 min-w-0">
               <div class="shrink-0">${icons.filePdf}</div>
               <div class="min-w-0">
@@ -49,45 +55,110 @@ export function createSplitTool(container, { updateProgress, resetProgress }) {
                 <p class="text-xs text-slate-500">${currentFile ? formatBytes(currentFile.size) : ''} • <span class="font-bold text-indigo-600">${totalPages}</span> trang</p>
               </div>
             </div>
-            <button id="change-file-btn" class="text-xs text-slate-500 hover:text-rose-600 px-3 py-1.5 rounded-lg hover:bg-white transition-colors">
+            <button id="change-file-btn" class="self-start sm:self-center text-xs text-slate-500 hover:text-rose-600 px-3 py-1.5 rounded-lg hover:bg-slate-50 transition-colors">
               Đổi tệp khác
             </button>
           </div>
 
           <!-- Mode selector -->
-          <div class="space-y-3">
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
             <label class="block text-sm font-semibold text-slate-700">Chọn phương thức tách:</label>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <label class="relative flex items-center p-3.5 border rounded-xl cursor-pointer transition-all ${splitMode === 'range' ? 'border-indigo-600 bg-indigo-50/40 text-indigo-900' : 'border-slate-200 hover:bg-slate-50'}">
+              <label class="relative flex items-center p-3.5 border rounded-xl cursor-pointer transition-all ${splitMode === 'range' ? 'border-indigo-600 bg-indigo-50/40 text-indigo-900 ring-2 ring-indigo-500/20' : 'border-slate-200 hover:bg-slate-50'}">
                 <input type="radio" name="splitMode" value="range" ${splitMode === 'range' ? 'checked' : ''} class="mr-3 text-indigo-600" />
                 <div>
-                  <p class="text-sm font-medium">Tách theo khoảng trang</p>
-                  <p class="text-xs text-slate-500 mt-0.5">Trích xuất một hoặc nhiều trang thành 1 file PDF mới</p>
+                  <p class="text-sm font-medium">Tách theo trang được chọn</p>
+                  <p class="text-xs text-slate-500 mt-0.5">Bấm trực tiếp vào ảnh trang hoặc nhập khoảng trang bên dưới</p>
                 </div>
               </label>
 
-              <label class="relative flex items-center p-3.5 border rounded-xl cursor-pointer transition-all ${splitMode === 'all' ? 'border-indigo-600 bg-indigo-50/40 text-indigo-900' : 'border-slate-200 hover:bg-slate-50'}">
+              <label class="relative flex items-center p-3.5 border rounded-xl cursor-pointer transition-all ${splitMode === 'all' ? 'border-indigo-600 bg-indigo-50/40 text-indigo-900 ring-2 ring-indigo-500/20' : 'border-slate-200 hover:bg-slate-50'}">
                 <input type="radio" name="splitMode" value="all" ${splitMode === 'all' ? 'checked' : ''} class="mr-3 text-indigo-600" />
                 <div>
                   <p class="text-sm font-medium">Tách tất cả các trang</p>
-                  <p class="text-xs text-slate-500 mt-0.5">Mỗi trang thành 1 file PDF (nén trong file ZIP)</p>
+                  <p class="text-xs text-slate-500 mt-0.5">Mỗi trang thành 1 file PDF (đóng gói trong file ZIP)</p>
                 </div>
               </label>
             </div>
+
+            <!-- Range input & Selection quick-buttons (Only if in range mode) -->
+            ${splitMode === 'range' ? `
+              <div class="pt-2 border-t border-slate-100 space-y-3">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <span class="text-xs font-semibold text-slate-700">Chọn nhanh theo nhóm:</span>
+                  <div class="flex flex-wrap items-center gap-1.5 text-xs">
+                    <button id="select-all-btn" class="px-2.5 py-1 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-colors">
+                      Chọn tất cả
+                    </button>
+                    <button id="deselect-all-btn" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">
+                      Bỏ chọn
+                    </button>
+                    <button id="select-odd-btn" class="px-2.5 py-1 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-colors">
+                      Trang lẻ (1, 3, 5...)
+                    </button>
+                    <button id="select-even-btn" class="px-2.5 py-1 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-colors">
+                      Trang chẵn (2, 4...)
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <div class="flex items-center justify-between mb-1">
+                    <label for="page-range" class="text-xs font-medium text-slate-600">
+                      Khoảng trang (hoặc bấm trực tiếp vào ảnh trang bên dưới):
+                    </label>
+                    <span class="text-xs text-indigo-600 font-bold">Đã chọn ${selectedCount}/${totalPages} trang</span>
+                  </div>
+                  <input type="text" id="page-range" value="${getSelectedRangeString()}" placeholder="Ví dụ: 1-3, 5, 8" class="w-full px-3.5 py-2 text-sm border border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 rounded-xl outline-none" />
+                </div>
+              </div>
+            ` : ''}
           </div>
 
-          <!-- Range Input -->
-          <div id="range-input-box" class="${splitMode === 'range' ? '' : 'hidden'} space-y-2">
-            <label for="page-range" class="block text-sm font-medium text-slate-700">
-              Nhập khoảng trang (ví dụ: <span class="font-mono text-indigo-600">1-3, 5, 7-${Math.min(totalPages, 10)}</span>)
-            </label>
-            <input type="text" id="page-range" value="${totalPages > 1 ? `1-${Math.min(totalPages, 3)}` : '1'}" placeholder="Ví dụ: 1-3, 5, 7" class="w-full px-4 py-2.5 text-sm border border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 rounded-xl outline-none" />
-            <p class="text-xs text-slate-400">Tổng số trang có sẵn: 1 đến ${totalPages}. Dùng dấu gạch nối (-) cho khoảng và dấu phẩy (,) để ngăn cách.</p>
+          <!-- Visual Pages Preview Grid -->
+          <div class="bg-slate-50 p-4 sm:p-6 rounded-2xl border border-slate-200 space-y-3">
+            <div class="flex items-center justify-between text-xs text-slate-500 px-1">
+              <span class="font-semibold text-slate-700">Cửa sổ xem trước trang tài liệu:</span>
+              <span>Bấm vào trang để chọn / bỏ chọn</span>
+            </div>
+
+            <div id="pages-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3.5">
+              ${pages.map((p, idx) => `
+                <div 
+                  data-toggle-page="${idx}" 
+                  class="group relative bg-white border-2 rounded-2xl p-2 cursor-pointer transition-all hover:shadow-md select-none ${p.selected && splitMode === 'range' ? 'border-indigo-600 bg-indigo-50/20 ring-2 ring-indigo-500/20' : 'border-slate-200 hover:border-slate-300'}"
+                >
+                  <div class="flex items-center justify-between text-[11px] mb-1.5 px-0.5">
+                    <span class="font-bold ${p.selected && splitMode === 'range' ? 'text-indigo-700 bg-indigo-100' : 'text-slate-600 bg-slate-100'} px-2 py-0.5 rounded-md">
+                      Trang ${p.pageNum}
+                    </span>
+                    ${splitMode === 'range' ? `
+                      <span class="w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold ${p.selected ? 'bg-indigo-600 text-white' : 'border border-slate-300 text-transparent'}">
+                        ✓
+                      </span>
+                    ` : ''}
+                  </div>
+
+                  <div class="aspect-[1/1.4] bg-slate-100 rounded-xl overflow-hidden border border-slate-100 flex items-center justify-center relative p-1">
+                    ${p.thumbUrl ? `
+                      <img src="${p.thumbUrl}" alt="Trang ${p.pageNum}" class="w-full h-full object-contain pointer-events-none" />
+                    ` : `
+                      <div class="flex flex-col items-center justify-center text-slate-300">
+                        <span class="animate-spin text-indigo-500 text-sm">●</span>
+                      </div>
+                    `}
+                  </div>
+                </div>
+              `).join('')}
+            </div>
           </div>
 
           <!-- Action Button -->
-          <div class="pt-2">
-            <button id="split-btn" ${isProcessing ? 'disabled' : ''} class="w-full inline-flex items-center justify-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-xl shadow-sm transition-all text-sm">
+          <div class="p-5 bg-white border border-slate-200 rounded-2xl shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
+            <span class="text-xs text-slate-500">
+              ${splitMode === 'range' ? `Xuất tài liệu mới gồm <b>${selectedCount}</b> trang đã chọn` : `Tách toàn bộ <b>${totalPages}</b> trang thành các tệp riêng trong file ZIP`}
+            </span>
+            <button id="split-btn" ${isProcessing || (splitMode === 'range' && selectedCount === 0) ? 'disabled' : ''} class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 text-white font-medium rounded-xl shadow-sm transition-all text-sm">
               ${icons.split} Bắt đầu tách PDF
             </button>
           </div>
@@ -117,6 +188,37 @@ export function createSplitTool(container, { updateProgress, resetProgress }) {
     bindEvents();
   }
 
+  function getSelectedRangeString() {
+    const selectedIndices = pages.map((p, i) => p.selected ? i + 1 : null).filter(Boolean);
+    if (selectedIndices.length === 0) return '';
+
+    const ranges = [];
+    let start = selectedIndices[0];
+    let end = start;
+
+    for (let i = 1; i < selectedIndices.length; i++) {
+      if (selectedIndices[i] === end + 1) {
+        end = selectedIndices[i];
+      } else {
+        ranges.push(start === end ? `${start}` : `${start}-${end}`);
+        start = selectedIndices[i];
+        end = start;
+      }
+    }
+    ranges.push(start === end ? `${start}` : `${start}-${end}`);
+    return ranges.join(', ');
+  }
+
+  function applyRangeStringToSelection(str) {
+    const parsed = parsePageRanges(str, totalPages);
+    if (parsed.valid) {
+      pages.forEach((p, idx) => {
+        p.selected = parsed.pages.includes(idx);
+      });
+      render();
+    }
+  }
+
   function bindEvents() {
     const dropZone = container.querySelector('#drop-zone');
     const fileInput = container.querySelector('#file-input');
@@ -144,7 +246,9 @@ export function createSplitTool(container, { updateProgress, resetProgress }) {
     if (changeFileBtn) {
       changeFileBtn.addEventListener('click', () => {
         currentFile = null;
-        pdfDoc = null;
+        pdfLibDoc = null;
+        pdfjsDoc = null;
+        pages = [];
         totalPages = 0;
         render();
       });
@@ -154,11 +258,35 @@ export function createSplitTool(container, { updateProgress, resetProgress }) {
     container.querySelectorAll('input[name="splitMode"]').forEach(radio => {
       radio.addEventListener('change', (e) => {
         splitMode = e.target.value;
-        const rangeBox = container.querySelector('#range-input-box');
-        if (rangeBox) {
-          if (splitMode === 'range') rangeBox.classList.remove('hidden');
-          else rangeBox.classList.add('hidden');
-        }
+        render();
+      });
+    });
+
+    // Quick selection buttons
+    const selectAllBtn = container.querySelector('#select-all-btn');
+    const deselectAllBtn = container.querySelector('#deselect-all-btn');
+    const selectOddBtn = container.querySelector('#select-odd-btn');
+    const selectEvenBtn = container.querySelector('#select-even-btn');
+    const rangeInput = container.querySelector('#page-range');
+
+    if (selectAllBtn) selectAllBtn.addEventListener('click', () => { pages.forEach(p => p.selected = true); render(); });
+    if (deselectAllBtn) deselectAllBtn.addEventListener('click', () => { pages.forEach(p => p.selected = false); render(); });
+    if (selectOddBtn) selectOddBtn.addEventListener('click', () => { pages.forEach((p, i) => p.selected = ((i + 1) % 2 !== 0)); render(); });
+    if (selectEvenBtn) selectEvenBtn.addEventListener('click', () => { pages.forEach((p, i) => p.selected = ((i + 1) % 2 === 0)); render(); });
+
+    if (rangeInput) {
+      rangeInput.addEventListener('change', (e) => {
+        applyRangeStringToSelection(e.target.value);
+      });
+    }
+
+    // Toggle page by clicking thumbnail
+    container.querySelectorAll('[data-toggle-page]').forEach(tile => {
+      tile.addEventListener('click', () => {
+        if (splitMode !== 'range') return;
+        const index = parseInt(tile.getAttribute('data-toggle-page'), 10);
+        pages[index].selected = !pages[index].selected;
+        render();
       });
     });
 
@@ -169,7 +297,9 @@ export function createSplitTool(container, { updateProgress, resetProgress }) {
     if (resetBtn) {
       resetBtn.addEventListener('click', () => {
         currentFile = null;
-        pdfDoc = null;
+        pdfLibDoc = null;
+        pdfjsDoc = null;
+        pages = [];
         render();
       });
     }
@@ -184,39 +314,69 @@ export function createSplitTool(container, { updateProgress, resetProgress }) {
     try {
       updateProgress(20, 'Đang phân tích tệp PDF...');
       const ab = await readFileAsArrayBuffer(file);
-      const loadedDoc = await PDFDocument.load(ab, { ignoreEncryption: true });
-      pdfDoc = loadedDoc;
-      totalPages = loadedDoc.getPageCount();
+      arrayBuffer = ab;
       currentFile = file;
+
+      // Always pass independent cloned slices
+      pdfLibDoc = await PDFDocument.load(ab.slice(0), { ignoreEncryption: true });
+      pdfjsDoc = await loadPdfDocument(ab.slice(0));
+      totalPages = pdfjsDoc.numPages;
+
+      pages = [];
+      for (let i = 0; i < totalPages; i++) {
+        pages.push({
+          pageNum: i + 1,
+          selected: true, // Default all selected
+          thumbUrl: null
+        });
+      }
+
       resetProgress();
       render();
+
+      // Render thumbnails in background
+      for (let i = 0; i < totalPages; i++) {
+        try {
+          const rendered = await renderPageToCanvas(pdfjsDoc, i + 1, 0.4);
+          const thumbUrl = rendered.canvas.toDataURL('image/jpeg', 0.75);
+          if (pages[i]) {
+            pages[i].thumbUrl = thumbUrl;
+            const imgEl = container.querySelector(`[data-toggle-page="${i}"] img`);
+            if (imgEl) imgEl.src = thumbUrl;
+          }
+        } catch (err) {
+          console.warn('Lỗi render thumbnail trang', i + 1, err);
+        }
+      }
+
+      render();
+
     } catch (err) {
       console.error(err);
-      alert('Không thể mở tệp PDF này: ' + err.message);
+      alert('Không thể mở tệp PDF: ' + err.message);
       resetProgress();
     }
   }
 
   async function handleSplit() {
-    if (!pdfDoc || !currentFile) return;
+    if (!pdfLibDoc || !currentFile) return;
 
     isProcessing = true;
     updateProgress(10, 'Đang chuẩn bị tách trang...');
 
     try {
       if (splitMode === 'range') {
-        const rangeInput = container.querySelector('#page-range').value;
-        const parsed = parsePageRanges(rangeInput, totalPages);
-        if (!parsed.valid) {
-          alert(parsed.error);
+        const selectedIndices = pages.map((p, i) => p.selected ? i : null).filter(i => i !== null);
+        if (selectedIndices.length === 0) {
+          alert('Vui lòng chọn ít nhất 1 trang để tách.');
           isProcessing = false;
           resetProgress();
           return;
         }
 
-        updateProgress(30, `Đang trích xuất ${parsed.pages.length} trang...`);
+        updateProgress(30, `Đang trích xuất ${selectedIndices.length} trang...`);
         const newPdf = await PDFDocument.create();
-        const copiedPages = await newPdf.copyPages(pdfDoc, parsed.pages);
+        const copiedPages = await newPdf.copyPages(pdfLibDoc, selectedIndices);
 
         copiedPages.forEach((page, idx) => {
           newPdf.addPage(page);
@@ -232,7 +392,7 @@ export function createSplitTool(container, { updateProgress, resetProgress }) {
         updateProgress(100, 'Tách hoàn tất!');
         setTimeout(() => {
           resetProgress();
-          showResult(blob, filename, `Đã tách ${parsed.pages.length} trang • Dung lượng: ${formatBytes(blob.size)}`);
+          showResult(blob, filename, `Đã trích xuất ${selectedIndices.length} trang • Dung lượng: ${formatBytes(blob.size)}`);
         }, 300);
 
       } else {
@@ -242,7 +402,7 @@ export function createSplitTool(container, { updateProgress, resetProgress }) {
 
         for (let i = 0; i < totalPages; i++) {
           const singleDoc = await PDFDocument.create();
-          const [copiedPage] = await singleDoc.copyPages(pdfDoc, [i]);
+          const [copiedPage] = await singleDoc.copyPages(pdfLibDoc, [i]);
           singleDoc.addPage(copiedPage);
           const singleBytes = await singleDoc.save();
           const pageNumStr = String(i + 1).padStart(2, '0');

@@ -1,9 +1,10 @@
 import { PDFDocument } from 'pdf-lib';
 import { icons } from '../utils/icons.js';
 import { formatBytes, downloadBlob, readFileAsArrayBuffer } from '../utils/helpers.js';
+import { loadPdfDocument, renderPageToCanvas } from '../utils/pdfHelper.js';
 
 export function createMergeTool(container, { updateProgress, resetProgress }) {
-  let files = []; // [{ id, file, name, size, pageCount, arrayBuffer }]
+  let files = []; // [{ id, file, name, size, pageCount, arrayBuffer, thumbUrl }]
   let isProcessing = false;
 
   function render() {
@@ -16,7 +17,7 @@ export function createMergeTool(container, { updateProgress, resetProgress }) {
               <span class="p-2 bg-indigo-50 text-indigo-600 rounded-xl">${icons.merge}</span>
               Nối file PDF (Merge PDF)
             </h2>
-            <p class="text-sm text-slate-500 mt-1">Gộp nhiều tệp PDF lại thành một tệp duy nhất theo thứ tự bạn chọn.</p>
+            <p class="text-sm text-slate-500 mt-1">Gộp nhiều tệp PDF lại thành một tệp duy nhất theo thứ tự bạn chọn (có ảnh thu nhỏ xem trước từng file).</p>
           </div>
         </div>
 
@@ -49,17 +50,28 @@ export function createMergeTool(container, { updateProgress, resetProgress }) {
             </div>
           </div>
 
-          <div id="file-items" class="space-y-2.5">
+          <div id="file-items" class="space-y-3">
             ${files.map((item, index) => `
-              <div class="flex items-center justify-between p-3.5 bg-white border border-slate-200 rounded-xl shadow-xs hover:border-indigo-200 transition-colors">
-                <div class="flex items-center gap-3 min-w-0">
+              <div class="flex items-center justify-between p-3.5 bg-white border border-slate-200 rounded-2xl shadow-xs hover:border-indigo-200 transition-colors">
+                <div class="flex items-center gap-3.5 min-w-0">
                   <span class="w-6 h-6 rounded-full bg-slate-100 text-slate-600 text-xs font-bold flex items-center justify-center shrink-0">
                     ${index + 1}
                   </span>
-                  <div class="shrink-0">${icons.filePdf}</div>
+
+                  <!-- Thumbnail Cover Preview -->
+                  <div class="w-12 h-16 rounded-lg bg-slate-100 border border-slate-200 overflow-hidden shrink-0 flex items-center justify-center shadow-2xs">
+                    ${item.thumbUrl ? `
+                      <img src="${item.thumbUrl}" alt="Cover" class="w-full h-full object-contain" />
+                    ` : `
+                      <div class="flex items-center justify-center text-slate-300">
+                        ${icons.filePdf}
+                      </div>
+                    `}
+                  </div>
+
                   <div class="min-w-0">
                     <p class="text-sm font-medium text-slate-800 truncate max-w-xs sm:max-w-md">${item.name}</p>
-                    <p class="text-xs text-slate-400">${formatBytes(item.size)} • ${item.pageCount !== undefined ? item.pageCount + ' trang' : 'Đang đọc...'}</p>
+                    <p class="text-xs text-slate-400 mt-0.5">${formatBytes(item.size)} • <span class="font-semibold text-indigo-600">${item.pageCount !== undefined ? item.pageCount + ' trang' : 'Đang đọc...'}</span></p>
                   </div>
                 </div>
 
@@ -200,20 +212,27 @@ export function createMergeTool(container, { updateProgress, resetProgress }) {
         name: file.name,
         size: file.size,
         pageCount: undefined,
-        arrayBuffer: null
+        arrayBuffer: null,
+        thumbUrl: null
       };
       files.push(item);
     }
     render();
 
-    // Read page counts in background
+    // Read page counts & generate cover thumbnail in background
     for (const item of files) {
       if (item.pageCount === undefined) {
         try {
           const ab = await readFileAsArrayBuffer(item.file);
           item.arrayBuffer = ab;
-          const pdfDoc = await PDFDocument.load(ab, { ignoreEncryption: true });
+
+          // Safe clone
+          const pdfDoc = await PDFDocument.load(ab.slice(0), { ignoreEncryption: true });
           item.pageCount = pdfDoc.getPageCount();
+
+          const pdfjs = await loadPdfDocument(ab.slice(0));
+          const rendered = await renderPageToCanvas(pdfjs, 1, 0.25);
+          item.thumbUrl = rendered.canvas.toDataURL('image/jpeg', 0.7);
         } catch (err) {
           console.error('Lỗi khi đọc file PDF:', err);
           item.pageCount = 1;
@@ -235,7 +254,6 @@ export function createMergeTool(container, { updateProgress, resetProgress }) {
     try {
       const mergedPdf = await PDFDocument.create();
       let totalCopied = 0;
-      const totalPages = files.reduce((acc, f) => acc + (f.pageCount || 1), 0);
 
       for (let i = 0; i < files.length; i++) {
         const item = files[i];
@@ -248,7 +266,8 @@ export function createMergeTool(container, { updateProgress, resetProgress }) {
           item.arrayBuffer = ab;
         }
 
-        const sourcePdf = await PDFDocument.load(ab, { ignoreEncryption: true });
+        // Safe clone
+        const sourcePdf = await PDFDocument.load(ab.slice(0), { ignoreEncryption: true });
         const pageIndices = sourcePdf.getPageIndices();
         const copiedPages = await mergedPdf.copyPages(sourcePdf, pageIndices);
 
