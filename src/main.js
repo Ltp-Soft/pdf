@@ -93,20 +93,21 @@ function initApp() {
   app.innerHTML = `
     <div class="min-h-screen flex flex-col bg-slate-50 text-slate-800 selection:bg-indigo-500 selection:text-white font-sans antialiased">
       <!-- Navbar -->
-      <header class="bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-40 transition-shadow">
-        <div class="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <a href="#" id="brand-link" class="flex items-center gap-2.5 group">
-            <div class="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-sm group-hover:scale-105 transition-transform">
-              ${icons.filePdf}
-            </div>
+      <header class="bg-[#064e3b] shadow-md border-b border-emerald-900/60 sticky top-0 z-40 transition-shadow">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 h-18 flex items-center justify-between">
+          <a href="#" id="brand-link" class="flex items-center gap-3 group">
+            <img src="/asset/Logo_blue.png" alt="Crystal Co., Ltd Logo" class="w-11 h-11 rounded-full object-contain bg-white p-0.5 shadow-md group-hover:scale-105 transition-transform shrink-0" />
             <div class="flex flex-col">
-              <span class="text-lg font-bold tracking-tight text-slate-900 group-hover:text-indigo-600 transition-colors">PDF Free</span>
-              <span class="text-[10px] text-slate-400 font-medium -mt-1">Xử lý PDF trực tiếp tại trình duyệt</span>
+              <div class="flex items-center gap-2">
+                <span class="text-xl font-black tracking-tight text-white group-hover:text-emerald-200 transition-colors">Crystal PDF</span>
+                <span class="text-[10px] font-bold px-2 py-0.5 bg-emerald-800 text-emerald-100 rounded-full border border-emerald-700/60">Crystal Co., Ltd</span>
+              </div>
+              <span class="text-[11px] text-emerald-200/80 font-medium -mt-0.5">Bộ công cụ xử lý PDF trực tuyến • Bảo mật 100% Client-side</span>
             </div>
           </a>
 
           <div class="flex items-center gap-3">
-            <div class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold border border-emerald-100">
+            <div class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-900/90 text-emerald-200 text-xs font-semibold border border-emerald-700/60 shadow-xs">
               ${icons.shield}
               100% Client-side • Bảo mật tuyệt đối
             </div>
@@ -215,10 +216,13 @@ function initApp() {
       <!-- Footer -->
       <footer class="bg-white border-t border-slate-200 py-6 mt-12 text-center text-xs text-slate-500">
         <div class="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p>© 2026 PDF Free • Mã nguồn mở xử lý PDF trên trình duyệt (pdf-lib, pdfjs-dist, JSZip).</p>
+          <div class="flex items-center gap-2.5">
+            <img src="/asset/Logo_blue.png" alt="Crystal Co., Ltd" class="w-6 h-6 rounded-full object-contain shrink-0" />
+            <p class="font-medium text-slate-700">© 2026 Bản quyền thuộc về Crystal Co., Ltd. Tất cả quyền được bảo lưu.</p>
+          </div>
           <div class="flex items-center gap-4">
-            <span class="text-emerald-600 font-medium flex items-center gap-1">${icons.shield} Client-side Only</span>
-            <a href="https://pages.cloudflare.com/" target="_blank" rel="noopener" class="hover:text-indigo-600 transition-colors">Cloudflare Pages Ready</a>
+            <span class="text-emerald-700 font-semibold flex items-center gap-1">${icons.shield} 100% Client-side Processing</span>
+            <a href="https://pdf.crystal-interior.com" target="_blank" rel="noopener" class="text-emerald-800 hover:text-emerald-950 font-semibold underline transition-colors">pdf.crystal-interior.com</a>
           </div>
         </div>
       </footer>

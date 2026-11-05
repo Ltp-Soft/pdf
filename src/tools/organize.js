@@ -1,4 +1,4 @@
-import { PDFDocument } from 'pdf-lib';
+import { PDFDocument, degrees } from 'pdf-lib';
 import { icons } from '../utils/icons.js';
 import { formatBytes, downloadBlob, readFileAsArrayBuffer, getOutputFilename } from '../utils/helpers.js';
 import { loadPdfDocument, renderPageToCanvas } from '../utils/pdfHelper.js';
@@ -141,6 +141,7 @@ export function createOrganizeTool(container, { updateProgress, resetProgress })
     const isTargetA = panelId === 'A';
     const moveOppositeIcon = isTargetA ? icons.arrowRight : icons.arrowLeftSmall;
     const moveOppositeTitle = isTargetA ? 'Chèn sang Cửa sổ 2' : 'Chèn sang Cửa sổ 1';
+    const rot = page.rotation || 0;
 
     return `
       <div 
@@ -152,18 +153,21 @@ export function createOrganizeTool(container, { updateProgress, resetProgress })
       >
         <!-- Page Number & Source Badge -->
         <div class="flex items-center justify-between text-[10px] text-slate-500 mb-1.5 px-0.5">
-          <span class="font-bold text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded">
-            #${index + 1}
-          </span>
+          <div class="flex items-center gap-1">
+            <span class="font-bold text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded">
+              #${index + 1}
+            </span>
+            ${rot > 0 ? `<span class="font-bold text-[9px] bg-amber-100 text-amber-800 px-1 py-0.5 rounded">↻ ${rot}°</span>` : ''}
+          </div>
           <span class="text-[9px] px-1 py-0.5 rounded ${page.sourceDoc === 'A' ? 'bg-indigo-50 text-indigo-600' : 'bg-emerald-50 text-emerald-600'}">
             Từ ${page.sourceDoc} (tr.${page.originalIndex + 1})
           </span>
         </div>
 
         <!-- Thumbnail Image Container -->
-        <div class="aspect-[1/1.4] bg-slate-100 rounded-lg overflow-hidden border border-slate-100 flex items-center justify-center relative">
+        <div class="aspect-[1/1.4] bg-slate-100 rounded-lg overflow-hidden border border-slate-100 flex items-center justify-center relative p-1">
           ${page.thumbUrl ? `
-            <img src="${page.thumbUrl}" alt="Trang ${index + 1}" class="w-full h-full object-contain pointer-events-none" />
+            <img src="${page.thumbUrl}" alt="Trang ${index + 1}" style="transform: rotate(${rot}deg); transition: transform 0.2s ease-in-out;" class="w-full h-full object-contain pointer-events-none" />
           ` : `
             <div class="flex flex-col items-center justify-center text-slate-300">
               <span class="animate-spin text-indigo-400 text-xs">●</span>
@@ -183,6 +187,9 @@ export function createOrganizeTool(container, { updateProgress, resetProgress })
           </div>
 
           <div class="flex items-center gap-0.5">
+            <button data-action="rotate-page" data-panel="${panelId}" data-index="${index}" class="p-1 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded" title="Xoay trang 90°">
+              ${icons.rotate}
+            </button>
             <button data-action="duplicate" data-panel="${panelId}" data-index="${index}" class="p-1 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded" title="Nhân đôi trang này (Copy x2)">
               ${icons.duplicate}
             </button>
@@ -344,6 +351,10 @@ export function createOrganizeTool(container, { updateProgress, resetProgress })
           const cloned = { ...item, id: `${item.id}_dup_${Math.random().toString(36).substring(2, 6)}` };
           docs[panel].pages.splice(index + 1, 0, cloned);
           render();
+        } else if (action === 'rotate-page') {
+          const item = docs[panel].pages[index];
+          item.rotation = ((item.rotation || 0) + 90) % 360;
+          render();
         } else if (action === 'transfer') {
           // Transfer to opposite panel
           const item = docs[panel].pages[index];
@@ -487,6 +498,10 @@ export function createOrganizeTool(container, { updateProgress, resetProgress })
         updateProgress(percent, `Đang sao chép trang ${i + 1}/${pagesToExport.length} (từ tệp ${item.sourceDoc})...`);
 
         const [copiedPage] = await newPdf.copyPages(srcDoc, [item.originalIndex]);
+        if (item.rotation) {
+          const currentRot = copiedPage.getRotation().angle || 0;
+          copiedPage.setRotation(degrees((currentRot + item.rotation) % 360));
+        }
         newPdf.addPage(copiedPage);
       }
 
