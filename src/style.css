@@ -1,0 +1,9 @@
+@import "tailwindcss";
+
+@layer utilities {
+  .drag-over {
+    border-color: #3b82f6 !important;
+    background-color: #eff6ff !important;
+    transform: scale(1.01);
+  }
+}
