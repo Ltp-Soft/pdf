@@ -1,5 +1,45 @@
-# pdf.ltp-soft.com - Cho phép toàn bộ bot tìm kiếm lập chỉ mục
+# pdf.ltp-soft.com - Cho phép toàn bộ bot tìm kiếm & AI lập chỉ mục
+
 User-agent: *
+Allow: /
+
+# Google Search
+User-agent: Googlebot
+Allow: /
+
+# Google Search Console Testing Tools
+User-agent: Google-InspectionTool
+Allow: /
+
+# Bing / Yahoo
+User-agent: Bingbot
+Allow: /
+
+# Cốc Cốc
+User-agent: coccocbot
+Allow: /
+
+# OpenAI / ChatGPT
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+# Anthropic / Claude
+User-agent: ClaudeBot
+Allow: /
+
+# Perplexity AI
+User-agent: PerplexityBot
+Allow: /
+
+# Facebook / Meta
+User-agent: facebookexternalhit
+Allow: /
+
+# Apple
+User-agent: Applebot
 Allow: /
 
 Sitemap: https://pdf.ltp-soft.com/sitemap.xml

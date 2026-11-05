@@ -1,18 +1,21 @@
 # Cloudflare Pages headers  (https://developers.cloudflare.com/pages/configuration/headers/)
 
-# Mặc định: bảo mật cơ bản. KHÔNG đặt X-Robots-Tag noindex cho tên miền chính.
+# Mặc định: Cho phép crawl và bảo mật cơ bản
 /*
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
-  X-Frame-Options: SAMEORIGIN
   Permissions-Policy: camera=(), microphone=(), geolocation=()
 
-# Chặn Google index bản *.pages.dev (tránh trùng lặp nội dung với pdf.ltp-soft.com)
-https://:project.pages.dev/*
-  X-Robots-Tag: noindex
+# Đảm bảo robots.txt luôn mở, không cache lâu và không bị noindex
+/robots.txt
+  Content-Type: text/plain; charset=utf-8
+  Cache-Control: public, max-age=3600
+  Access-Control-Allow-Origin: *
 
-https://:version.:project.pages.dev/*
-  X-Robots-Tag: noindex
+/sitemap.xml
+  Content-Type: application/xml; charset=utf-8
+  Cache-Control: public, max-age=3600
+  Access-Control-Allow-Origin: *
 
 # File build có hash -> cache lâu dài
 /assets/*
@@ -20,6 +23,3 @@ https://:version.:project.pages.dev/*
 
 /brand/*
   Cache-Control: public, max-age=604800
-
-/sitemap.xml
-  Content-Type: application/xml; charset=utf-8
