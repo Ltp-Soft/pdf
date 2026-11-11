@@ -15,8 +15,8 @@ export function renderTopPromo() {
        class="block bg-gradient-to-r from-rose-700 via-rose-600 to-blue-700 text-white text-xs sm:text-sm font-semibold hover:brightness-110 transition">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 py-2 flex items-center justify-center gap-2 text-center">
         <span class="hidden md:inline whitespace-nowrap px-2 py-0.5 rounded-full bg-white/20 text-[10px] uppercase tracking-wider">Tài trợ bởi LTP Soft</span>
-        <span class="hidden sm:inline">📍 Phần mềm chấm công QR &amp; GPS – Không giới hạn nhân sự. <u>Dùng thử miễn phí 60 ngày →</u></span>
-        <span class="sm:hidden">📍 Chấm công QR &amp; GPS – <u>Dùng thử miễn phí →</u></span>
+        <span class="hidden sm:inline">Phần mềm chấm công QR &amp; GPS – Không giới hạn nhân sự. <u>Dùng thử miễn phí 60 ngày →</u></span>
+        <span class="sm:hidden">Chấm công QR &amp; GPS – <u>Dùng thử miễn phí →</u></span>
       </div>
     </a>`;
 }
@@ -50,9 +50,9 @@ function attendanceCard(placement) {
 
 function solutionsCard(placement) {
   const items = [
-    ['/giai-phap/cham-cong-cong-trinh-xay-dung/', '🏗️', 'Chấm công công trình xây dựng', 'Chống gian lận, chấm công đội thợ'],
-    ['/giai-phap/cham-cong-chuoi-cua-hang-fnb/', '☕', 'Chấm công chuỗi cửa hàng F&amp;B', 'Ca gãy, nhiều chi nhánh'],
-    ['/giai-phap/ai-tu-dong-tinh-luong-excel/', '🤖', 'AI tự động tính lương Excel', 'Mô tả bằng tiếng Việt là xong'],
+    ['/giai-phap/cham-cong-cong-trinh-xay-dung/', '<svg class="w-5 h-5 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 18a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v2z"/><path d="M10 10V5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v5"/><path d="M4 15v-3a6 6 0 0 1 6-6"/><path d="M14 6a6 6 0 0 1 6 6v3"/></svg>', 'Chấm công công trình xây dựng', 'Chống gian lận, chấm công đội thợ'],
+    ['/giai-phap/cham-cong-chuoi-cua-hang-fnb/', '<svg class="w-5 h-5 text-rose-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>', 'Chấm công chuỗi cửa hàng F&amp;B', 'Ca gãy, nhiều chi nhánh'],
+    ['/giai-phap/ai-tu-dong-tinh-luong-excel/', '<svg class="w-5 h-5 text-indigo-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="16" height="20" x="4" y="2" rx="2"/><line x1="8" x2="16" y1="6" y2="6"/><line x1="16" x2="16" y1="14" y2="18"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/></svg>', 'AI tự động tính lương Excel', 'Mô tả bằng tiếng Việt là xong'],
   ];
   return `
     <div class="rounded-2xl bg-white border border-slate-200 p-4 shadow-sm">
@@ -64,7 +64,7 @@ function solutionsCard(placement) {
           <li>
             <a href="${adUrl(p, `${placement}_solution_${i + 1}`)}" ${ext} data-ad="${placement}_solution_${i + 1}"
                class="flex items-start gap-3 py-2.5 group">
-              <span class="text-xl leading-none">${emo}</span>
+              <span class="shrink-0 mt-0.5">${emo}</span>
               <span>
                 <span class="block text-sm font-semibold text-slate-800 group-hover:text-rose-600 transition-colors">${title}</span>
                 <span class="block text-xs text-slate-500">${sub}</span>

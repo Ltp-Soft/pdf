@@ -191,7 +191,7 @@ function initApp() {
             <!-- Hero Section -->
             <div class="text-center max-w-3xl mx-auto space-y-3 pt-2 sm:pt-6">
               <div class="inline-flex items-center gap-1 px-3 py-1 bg-rose-50 text-rose-700 text-xs font-semibold rounded-full border border-rose-100">
-                ⚡ Miễn phí • Không cần đăng ký • Không giới hạn • Không watermark
+                Miễn phí • Không cần đăng ký • Không giới hạn • Không watermark
               </div>
               <h1 class="text-3xl sm:text-5xl font-extrabold text-slate-900 tracking-tight">
                 Ghép file PDF <span class="bg-gradient-to-r from-rose-600 to-blue-700 bg-clip-text text-transparent">miễn phí, không cần đăng ký</span>
